@@ -253,7 +253,7 @@ class Request extends BaseModel {
 
 		$client = $request->getClient();
 
-		if(is_bool($request->getClient())) {
+		if(is_bool($client)) {
 			return false; //could not find client.
 		}
 
