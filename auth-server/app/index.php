@@ -1,6 +1,7 @@
 <?php
 
-use \Phalcon\Db\Adapter\Pdo\Mysql;
+use \Phalcon\Db\Adapter\Pdo\Mysql,
+    \Phalcon\Mvc\View;
 
 //use loader class to not only auto-load required classes, but also
 //register the namespaces.
@@ -39,138 +40,162 @@ $di->set('crypt', function() {
 //create a new new micro application
 $app = new \Phalcon\Mvc\Micro($di);
 
-//define the routes used in this application. Each route is handled here rather than
-//using controllers, as all this dummy server provides is authorisation.
-$app->post('/oauth/token', function() use ($app) {
+//set a view variable to the app so we can use views.
+$app['view'] = function() {
+    $view = new View();
+    $view->setViewsDir('../app/views/');
+    return $view;
+};
 
-    //get the json request body, i.e the client secret, id,
-    //timstamp and authorization code to request an access token.
-    $params = (array) $app->request->getJsonRawBody();
-
-    $response = new \Phalcon\Http\Response();
-
-    //format params.
-    $data = array();
-    //make all the keys in params lower.
-    foreach ($params as $key => $value) {
-        $data[strtolower($key)] = $value;
+/**
+ * This route is the gateway to start the authorisation process, the client
+ * will redirect to this page with the params defined in a query string.
+ * the parameters that are used in this route are: client_id (required), state (required),
+ * scope (required), and redirect_uri (optional).
+ */
+$app->get('/oauth/authorize', function() use ($app) {
+    //format params
+    $params = array();
+    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
+        $params[strtolower($key)] = $value;
     }
-
-    //check that all of the required params have been set.
+    
+    //check for required keys.
     $keys = array(
-        'clientid',
-        'clientsecret',
-        'timestamp',
-        'signature',
+        'client_id',
+        'state',
         'scope'
+        //more keys if required at a later date.
     );
-
-    //by default the request is treated as valid
-    //until proven wrong.
+    
     $validRequest = true;
-
-    //check that the same keys are supplied, regardless of case and whatever
-    //params were provided by the user.
-    if (count(array_intersect($keys, array_keys($data))) != 4) {
-        $validRequest = false;
-    }
-
-    //check that the variables are of the required type, i.e
-    //the clientID/secret/signature are strings and timestamp can be
-    //parsed as a valid datetime.
-    if (!date('Y-m-d', $data['timestamp'])) {
+    //check all of the required keys are in the params.
+    if(count(array_intersect($keys, array_keys($params))) != count($keys)) {
         $validRequest = false;
     }
     
-    //we need to check that permissions were set.
-    if(!is_array($data['scope']) || count($data['scope']) == 0) {
-        $validRequest = false;
-    }
-
-    foreach (array($data['clientid'], $data['clientsecret'], $data['signature']) as $value) {
-        if (!isset($value) && !is_string($value)) {
+    foreach($keys as $key) {
+        if(!is_string($params[$key]) || strlen($params[$key]) == 0) {
             $validRequest = false;
         }
     }
-
-    //if any of the request tests failed, then send 400 - Bad Request.
-    if (!$validRequest) {
-        //set the status code to 400 - Bad Request
-        $response->setStatusCode(400, "Bad Request")->send();
+    
+    //if the request is not valid.
+    if(!$validRequest) {$app->response->setStatusCode(400, "Bad Request")->send();}
+    
+    $redirect_uri = (array_key_exists('redirect_uri', $params)) ? $params['redirect_uri'] : null;
+    $scope = (array_key_exists('scope', $params)) ? explode(',',$params['scope']) 
+            : array(); 
+    
+    //build a request and store it.
+    $request = \Models\Request::requestBuilder($params['client_id'], $scope, $params['state'], $redirect_uri);
+    
+    if(!$request) {$app->response->setStatusCode(400, "Bad Request")->send();}
+    
+    //the request is valid, check if this user is already logged in.
+    $userID = ($app->cookies->has('userID')) ? $app->cookies->get('userID')->getValue() : false;
+    
+    //render the correct view, injecting the request object into it.
+    $view = array('oauth', '', array('request' => $request, 'type' => '', 'userID' => ''));
+    if(!$userID) {
+        //show the log in form.
+        $view[1] = 'login';
+    } else {
+        //show authorise page.
+        $view[1] = 'authorize';
+        $view[2]['userID'] = $userID; 
     }
-
-    //after request is correctly parsed, try to determine if
-    //client exists.
-
-    $redirectURI = (isset($data['redirecturi'])) ? $data['redirecturi'] : null;
-
-    if (!\Models\Client::checkIsValidClient($data['clientid'], $data['clientsecret'])) {
-        //set the status code to 403 - Forbidden
-        $response->setStatusCode(403, "Forbidden")->send();
-    }
-
-    $request = \Models\Request::requestBuilder($data['clientid'], $data['scope'], $data['timestamp'], $redirectURI);
-    if (!$request) {
-        //set the status code to 403 - Forbidden
-        $response->setStatusCode(403, "Forbidden")->send();
-    }
-
-    //start authorization process, create new request instance and send
-    //to /oauth/authorisation.
-    $response->redirect('/oauth/authorisation/' . $request->getRequestID());
+    
+    $view[2]['type'] = $view[1];
+    $app->response->setStatusCode(200, "OK")
+                  ->setContent($app['view']->getRender($view[0], $view[1], $view[2]))
+                  ->send();
+    
 });
 
-$app->get('/oauth/authorisation/{ri:[0-9A-Za-z]+}', function($ri) use ($app) {
+/**
+ * This route is defined to handle the authentication process on the actual login/auth pages, 
+ * the reason why I used ajax is as because you can only process same-host requests this way, which
+ * adds another layer of security to the process. This route is also only valid when a TYPE and a valid
+ * requestID are provided.
+ */
+$app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', function($type, $requestID) use ($app) {
+    //this route is a ajax only route.
+    if(!$app->request->isAjax()) {$app->response->setStatusCode(404, "Not Found")->send();}
     
-    //check that the Request is valid.
-    $request = \Models\Request::findRequestByID($ri);
+    //get the request object.
+    $request = \Models\Request::findRequestByID($requestID);
     
-    //if the request is not found.
-    if(!$request) {
-        $app->response->setStatusCode(404, "Not Found")->send();
-    }
+    if(!$request) {$app->response->setStatusCode(404, "Not Found")->send();} //request was not found.
     
-    $userID = null;
-    $previousPermissions = null;
-    //Check if a session is already set, i.e a user has authenticated before
-    //and asked to be remembered.
-    
-    //cookies on this auth site are not only encrypted but the only value that is
-    //stored is the userID which is only applicable for this site.
-    if($app->cookies->has('remember-me')) {
-        $userID = $app->cookies->get('remember-me')->getValue();
-    }
-    
-    //if a user has logged in before.
-    if(isset($userID)) {
-        //if the user has already authenticated, we need to check what
-        //the permissions required have not changed.
-        $previousPermissions = \Models\ClientPermissions::findPermissions($request->getClientID(), $userID);
-        
-        //check if the required permissions are the same.
-        $newPermissions = array();
-        foreach($request->getScope() as $permission) {
-            if(!$previousPermissions->hasPermission($permission)) {
-                $newPermissions[] = $permission;
+    //get the type.
+    switch(strtoupper($type)) {
+        case 'LOGIN':
+            //check if the users creds are valid.
+            $email = $app->request->getPost('email', 'email');
+            $pass = hash('sha256', $app->request->getPost('pass'));
+            
+            //see if a user exists with them credentials.
+            $user = \Models\User::findUserByCredentials($email, $pass);
+            
+            $valid = (!is_bool($user));
+            
+            //send the response as JSON.
+            $app->response->setStatusCode(200, "OK")->setJsonContent(
+                array(
+                    'valid' => $valid, //check if user is valid.
+                    'html' => $app['view']->getRender('oauth', 'authorize',
+                            array(
+                                'request' => $request,
+                                'type' => 'authorize',
+                                'userID' => ($valid) ? $user->getUserID() : 1 //get userID.
+                            )
+                    ) //render html.
+                )
+            )->send(); //send response.
+            break;
+        case 'AUTHORIZE':
+            //see if the user accepted or declined the auth request.
+            //if success, generate code for request.
+            //redirect to redirect_uri either way.
+            $auth = $app->request->getPost('auth', 'string');
+            
+            //if the auth value is not set or the user declined. 
+            if(!isset($auth) || preg_match('/(decline)/i', $auth)) {
+                $app->response->redirect($request->getRedirectURI().'?'
+                        . http_build_query(array(
+                            'error' => 'user_declined',
+                            'error_description' => 'user declined permission request',
+                            'state' => $request->getState()
+                        )), true);
+            } else {
+                //the user accepted.
+                //generate code.
+                $request->setCode(\Models\Request::generateID(30))->save();
+                
+                //redirect to redirect_uri.
+                $app->response->redirect($request->getRedirectURI().'?'
+                        . http_build_query(array(
+                            'code' => $request->getCode(),
+                            'state' => $request->getState()
+                        )), true);
             }
-        }
-    
-        if(!empty($newPermissions)) {
-            //show permissions page with new permissions.
-        } else {
-            //just supply token as user has been authenticated
-            //before and all required permissions have been given permission.
-        }
+            break;
+        default:
+            //invalid request type.
+            $app->response->setStatusCode(404, "Not Found")->send();
+            break;
     }
-    
-    //show the log in page.
-    
 });
 
-$app->post('oauth/background/', function() use ($app) {
-    //this is used to perform ajax requests to move through the authenticated process.
-    //this is used to reload the HTML on the page without having to reload the page, with the
-    //only redirect being made is that to the redirectURI when the process is complete.
+/**
+ * This is the route defined where a client can use the 'code' parameter returned from 
+ * the initial authentication process (/oauth/authorize) in order to get an access token to use on the API.
+ * This route takes the following parameters: code (required), client_id (required), client_secret (required).
+ */
+$app->post('oauth/access_token', function() use ($app) {
+    //first check that the required params have been provided.
+    
 });
 
 //Need to define a action which is fired if a route is used that is not found.

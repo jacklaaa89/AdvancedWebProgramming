@@ -4,7 +4,7 @@ namespace Models;
 
 use \Phalcon\Mvc\Model;
 
-class BaseModel extends Model {
+abstract class BaseModel extends Model {
 
     /**
      * This function just generates a random string of a given length by
@@ -18,5 +18,8 @@ class BaseModel extends Model {
         $randomString = substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, $length);
         return substr(base64_encode(hash('sha256', $randomString)), 0, $length);
     }
+    
+    public function getSource();
+    public function validation();
 
 }

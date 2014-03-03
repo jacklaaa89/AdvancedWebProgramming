@@ -29,6 +29,11 @@ class Request extends BaseModel {
     private $timestamp;
     //an array of permissions requested.
     private $scope;
+    //a code will be set to this value if the user authenticates this
+    //request, this will be null until that point.
+    private $code;
+    //the random unguessable string provided by the user.
+    private $state;
 
     /**
      * This function overrides the getSource function in Model.
@@ -109,6 +114,15 @@ class Request extends BaseModel {
         if (!isset($this->requestID)) {
             $valid = false;
         }
+        
+        if(!isset($this->state)) {
+            $valid = false;
+        }
+        
+        //check the scope is not empty.
+        if(!is_array($this->scope) || count($this->scope) == 0) {
+            $valid = false;
+        }
 
         return $valid;
     }
@@ -123,6 +137,25 @@ class Request extends BaseModel {
      */
     public function getScope() {
         return $this->scope;
+    }
+    
+    /**
+     * returns the unguessable random string provided by the client
+     * for this request.
+     * @return string the state.
+     */
+    public function getState() {
+        return $this->state;
+    }
+    
+    /**
+     * sets the ungtuessable random state string provided by the user.
+     * @param string $state the random state string.
+     * @return \Models\Request returns $this for method chaining.
+     */
+    public function setState($state) {
+        $this->state = $state;
+        return $this;
     }
 
     /**
@@ -224,9 +257,7 @@ class Request extends BaseModel {
      * @return $this returns itself for method 'chaining'
      */
     public function setClientID($clientID) {
-        if (is_numeric($clientID)) {
-            $this->clientID = $clientID;
-        }
+        $this->clientID = $clientID;
         return $this;
     }
 
@@ -237,20 +268,35 @@ class Request extends BaseModel {
      * @return $this returns itself for method 'chaining'
      */
     public function setTimestamp($timestamp) {
-        $this->$timestamp = $timestamp;
+        $this->timestamp = $timestamp;
         return $this;
+    }
+    
+    /**
+     * 
+     * @param type $code
+     * @return \Models\AuthRequest
+     */
+    public function setCode($code) {
+        $this->code = $code;
+        return $this;
+    }
+    
+    public function getCode() {
+        return (isset($this->code)) ? $this->code : false;
     }
 
     /**
      * Generates a new Request object, this function also carrys out all of the required
      * validation that is needed to be performed on a Request before it is deemed valid.
+     * This function only builds the preliminary request, a code is not assigned.
      * @param string $clientID <p>The unique ID of the client making the request.</p>
      * @param string|int $timestamp [optional] <p>The UNIX timestamp of when this request was made, 
      * can either be a string function call i.e 'time()' or the int timestamp. Default is 'time()'</p>
      * @param string $redirectURI [optional] <p>The redirectURI, default is null (use the clients default).</p>
      * @return \Models\Request|boolean the request object on success, <b>FALSE</b> otherwise.
      */
-    public static function requestBuilder($clientID, $scope, $timestamp = 'time', $redirectURI = null) {
+    public static function requestBuilder($clientID, $scope, $state, $redirectURI = null, $timestamp = 'time') {
         //generate a requestID
         $requestID = \Models\Request::generateID();
 
@@ -258,6 +304,7 @@ class Request extends BaseModel {
         $request = new \Models\Request();
         $request->setRequestID($requestID)
                 ->setClientID($clientID)
+                ->setState($state)
                 ->setScope($scope);
         
         //check if the timestamp is a int or a function call.
@@ -304,7 +351,7 @@ class Request extends BaseModel {
         if (!$request->save()) {
 
             //validation error, try again, generating a new ID.
-            \Models\Request::requestBuilder($clientID, $redirectURI, $timestamp);
+            \Models\Request::requestBuilder($clientID, $scope, $state, $redirectURI, $timestamp);
         }
 
         //return the request object.
@@ -313,7 +360,6 @@ class Request extends BaseModel {
 
     /**
      * Attempts to find a Request object by its requestID.
-     * This function also deletes the model from the database.
      * 
      * @return mixed the Request object on success, FALSE otherwise.
      */
@@ -327,10 +373,39 @@ class Request extends BaseModel {
             )
         );
 
-        if (!is_bool($request)) {
-            $request->delete();
+        return $request;
+    }
+    
+    /**
+     * finds a unique request based on a code/clientID combo.
+     * this method also checks if the request is still valid.
+     * @param string $code the code recieved from the auth process.
+     * @param string $clientID unique clientID for this request.
+     * @return mixed the request object if it is valid, false otherwise.
+     */
+    public static function findRequestByCode($code, $clientID) {
+        $request = \Models\Request::findFirst(
+            array(
+                'conditions' => 'clientID = ?1 AND code = ?2',
+                'bind' => array(
+                    1 => $clientID,
+                    2 => $code
+                ),
+                'bindTypes' => array(
+                    1 => Column::BIND_TYPE_STR,
+                    2 => Column::BIND_TYPE_STR
+                )
+            )
+        );
+        
+        if(!is_bool($request)) {
+            //check the timestamp to see if it is still valid.
+            if($request->getTimestamp() <= strtotime('- 30 minutes')) {
+                $request->delete();
+                return false; //the request is longer than 30 minutes old.
+            }
         }
-
+        
         return $request;
     }
 }

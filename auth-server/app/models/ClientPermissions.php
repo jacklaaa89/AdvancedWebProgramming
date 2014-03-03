@@ -133,11 +133,10 @@ class ClientPermissions extends Model {
      * @param array $permissions the list of permissions.
      */
     public function addPermissions($permissions) {
+        //foreach of the new permissions, check that its 
         foreach(array_map('strtolower', $permissions) as $permission) {
             if(!$this->hasPermissions($permission)) {
-                if(!in_array($permission, $this->scope)) {
-                    $this->scope[] = $permission;
-                }
+                $this->scope[] = $permission;
             }
         }
         
