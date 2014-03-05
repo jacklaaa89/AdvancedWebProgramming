@@ -19,7 +19,7 @@ class RequestHelper {
             return false;
         }
         $t = explode(' ', trim($headers[strtoupper('authorization')]));
-        return \Models\Token::findToken(trim($t[1]));
+        return \Models\Auth\Token::findToken(trim($t[1]));
     }
     
     public static function setHeaders($app, $headers) {

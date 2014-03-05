@@ -11,7 +11,9 @@ $loader = new Loader();
 $loader->registerNamespaces(
     array(
         "Models" => "../app/models/",
-        "Utilities" => '../app/utilities/'
+        "Utilities" => '../app/utilities/',
+        "Models\Auth" => '../app/models/auth/',
+        "Models\Data" => '../app/models/data/'
     )
 )->register();
 
@@ -63,7 +65,7 @@ $app->get('/user', function() use ($app) {
     }
     
     //return data on user.
-    $user = \Models\User::findFirst(array(
+    $user = \Models\Data\User::findFirst(array(
         'conditions' => 'userID => ?1',
         'bind' => array(1 => $token->getUserID()),
         'bindTypes' => array(1 => Column::BIND_TYPE_STR)
@@ -72,8 +74,7 @@ $app->get('/user', function() use ($app) {
     //merge user details to array.
     $data = array();
     if(!is_bool($user)) {
-        $data['id'] = $user->getUserID();
-        $data['email'] = $user->getEmailAddress();
+        $data[] = $user->toArray();
     }
     
     //send the data.
@@ -91,8 +92,6 @@ $app->get('/messages', function() use ($app) {
         return;
     }
     
-    //check to see if this token has the permission to use this function,
-    //needs 'messages' scope.
     //set headers.
     \Utilities\RequestHelper::setHeaders($app, array(
         'X-OAuth-Accepted-Scopes' => 'messages',
@@ -105,11 +104,20 @@ $app->get('/messages', function() use ($app) {
     }
     
     //return messages.
-    $messages = \Models\Message::find(array(
+    $messages = \Models\Data\Message::find(array(
         'conditions' => 'userID = ?1',
         'bind' => array(1 => $token->getUserID()),
         'bindTypes' => array(1 => Column::BIND_TYPE_STR)
     ));
+    
+    $data = array();
+    foreach($messages as $message) {
+        $data[] = $message->toArray();
+    }
+    
+    //send the data.
+    $app->setStatusCode(200, "OK")->setContentType('application/json')
+        ->setJsonContent($data)->send();
 });
 
 //handle not found requests.
