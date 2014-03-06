@@ -2,9 +2,9 @@
 
 namespace Models;
 
-use Models\BaseModel,
-    Phalcon\Db\Column,
-    Phalcon\Mvc\Model\Validator\Uniqueness;
+use \Models\BaseModel,
+    \Phalcon\Db\Column,
+    \Phalcon\Mvc\Model\Validator\Uniqueness;
 
 /**
  * This class is an encapulation of an single request
@@ -193,7 +193,7 @@ class Request extends BaseModel {
             array(
                 'conditions' => 'clientID = ?1',
                 'bind' => array(1 => $this->clientID),
-                'bindTypes' => array(1 => Column::BIND_TYPE_STR)
+                'bindTypes' => array(1 => Column::BIND_PARAM_STR)
             )
         );
 
@@ -383,7 +383,7 @@ class Request extends BaseModel {
             array(
                 'conditions' => 'requestID = ?1',
                 'bind' => array(1 => $requestID),
-                'bindTypes' => array(1 => Column::BIND_TYPE_STR)
+                'bindTypes' => array(1 => Column::BIND_PARAM_STR)
             )
         );
 
@@ -406,8 +406,8 @@ class Request extends BaseModel {
                     2 => $code
                 ),
                 'bindTypes' => array(
-                    1 => Column::BIND_TYPE_STR,
-                    2 => Column::BIND_TYPE_STR
+                    1 => Column::BIND_PARAM_STR,
+                    2 => Column::BIND_PARAM_STR
                 )
             )
         );

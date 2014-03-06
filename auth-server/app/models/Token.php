@@ -2,7 +2,7 @@
 
 namespace Models;
 
-use Models\BaseModel,
+use \Models\BaseModel,
     \Phalcon\Db\Column,
     \Phalcon\Mvc\Model\Validator\Uniqueness;
 
@@ -145,14 +145,6 @@ class Token extends BaseModel {
         }
     }
     
-    public static function findToken($token) {
-        return \Models\Token::findFirst(array(
-            'conditions' => 'token = ?1',
-            'bind' => array(1 => $token),
-            'bindTypes' => array(1 => Column::BIND_TYPE_STR)
-        ));
-    }
-    
     public static function findToken($clientID, $userID) {
         return \Models\Token::findFirst(array(
             'conditions' => 'clientID = ?1 AND userID = ?2',
@@ -160,7 +152,7 @@ class Token extends BaseModel {
                 1 => $clientID, 2 => $userID
             ),
             'bindTypes' => array(
-                1 => Column::BIND_TYPE_STR, 2 => Column::BIND_TYPE_STR
+                1 => Column::BIND_PARAM_STR, 2 => Column::BIND_PARAM_STR
             )
         ));
     } 

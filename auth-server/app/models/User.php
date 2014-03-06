@@ -3,8 +3,8 @@
 namespace Models;
 
 use \Phalcon\Mvc\Model,
-    Phalcon\Db\Column,
-    Phalcon\Mvc\Model\Validator\Uniqueness;
+    \Phalcon\Db\Column,
+    \Phalcon\Mvc\Model\Validator\Uniqueness;
 
 class User extends Model {
     
@@ -65,8 +65,8 @@ class User extends Model {
             'conditions' => 'email = ?1 AND passwordHash = ?2',
             'bind' => array(1 => $email, 2 => $passwordHash),
             'bindTypes' => array(
-                1 => Column::BIND_TYPE_STR,
-                2 => Column::BIND_TYPE_STR
+                1 => Column::BIND_PARAM_STR,
+                2 => Column::BIND_PARAM_STR
             )
         ));
     }
