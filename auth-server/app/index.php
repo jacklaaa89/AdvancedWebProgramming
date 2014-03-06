@@ -111,7 +111,7 @@ $app->get('/oauth/authorize', function() use ($app) {
  */
 $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', function($type, $requestID) use ($app) {
     //this route is a ajax only route.
-    if(!$app->request->isAjax()) {$app->response->setStatusCode(404, "Not Found")->send();}
+    if(!$app->request->isAjax()) {$app->response->setStatusCode(404, "Not Found")->send();return;}
     
     //get the request object.
     $request = \Models\Request::findRequestByID($requestID);
