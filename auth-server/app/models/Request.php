@@ -34,6 +34,8 @@ class Request extends BaseModel {
     private $code;
     //the random unguessable string provided by the user.
     private $state;
+    //the user that has authenitcated this request.
+    private $userID;
 
     /**
      * This function overrides the getSource function in Model.
@@ -45,6 +47,7 @@ class Request extends BaseModel {
 
     public function initialize() {
         $this->belongsTo('clientID', 'Client', 'clientID');
+        $this->belongsTo('userID', 'User', 'userID');
     }
     
     /**
@@ -158,6 +161,15 @@ class Request extends BaseModel {
         return $this;
     }
 
+    public function getUserID() {
+        return $this->userID;
+    }
+    
+    public function setUserID($userID) {
+        $this->userID = $userID;
+        return $this;
+    }
+    
     /**
      * Returns the client object associated with this  
      * request or false if a client was not found.

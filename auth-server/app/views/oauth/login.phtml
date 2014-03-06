@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!--
+TODO - Add bootstrap and javascript files.
+-->
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+    </head>
+    <body id="body">
+        <input type="hidden" id="requestID" value="<?php echo $request->getRequestID(); ?>"/>
+        <input type="email" placeholder="Email" id="email"/>
+        <input type="password" placeholder="Password" id="pass"/>
+        <button id="submit">Submit</button>
+        <script type="text/javascript">
+            $(document).ready(function(){
+                $('#submit').click(function(){
+                    var r = $.ajax({
+                        'url' : '/oauth/background/login/'+$('#requestID').val(),
+                        'dataType' : 'JSON',
+                        'data' : {
+                            'email' : $('#email').val(),
+                            'pass' : $('#pass').val()
+                        },
+                        'type' : 'POST',
+                        'error' : function() {
+                            alert('An error occured');
+                        }
+                    });
+                    r.done(function(response){
+                        if(response !== undefined) {
+                            if(response.valid) {
+                                $('#body').html(response.html);
+                            }
+                        }
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

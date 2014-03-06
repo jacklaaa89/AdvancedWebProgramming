@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!--
+TODO - Add bootstrap and javascript files.
+-->
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+    </head>
+    <body id="body">
+        <button class="button" data-auth="accept">Accept</button>
+        <button class="button" data-auth="decline">Decline</button>
+        <script type="text/javascript">
+            $(document).ready(function(){
+                $('.button').click(function(){
+                    $.ajax({
+                        'url' : '/oauth/background/authorize/'+'<?php echo $request->getRequestID(); ?>',
+                        'dataType' : 'JSON',
+                        'data' : {
+                            'auth' : $(this).data('auth'),
+                            'userID' : '<?php echo $userID; ?>'
+                        },
+                        'type' : 'POST',
+                        'error' : function() {
+                            alert('An error occured');
+                        }
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

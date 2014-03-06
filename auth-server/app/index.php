@@ -1,7 +1,8 @@
 <?php
 
 use \Phalcon\Db\Adapter\Pdo\Mysql,
-    \Phalcon\Mvc\View;
+    \Phalcon\Mvc\View,
+    \Phalcon\Filter;
 
 //use loader class to not only auto-load required classes, but also
 //register the namespaces.
@@ -56,8 +57,10 @@ $app['view'] = function() {
 $app->get('/oauth/authorize', function() use ($app) {
     //format params
     $params = array();
-    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
-        $params[strtolower($key)] = $value;
+    $filter = new Filter();
+    foreach($_GET as $key => $value) {
+        //sanitize the input.
+        $params[strtolower($key)] = $filter->sanitize($value, 'string');
     }
     
     //check for required keys.
@@ -68,20 +71,8 @@ $app->get('/oauth/authorize', function() use ($app) {
         //more keys if required at a later date.
     );
     
-    $validRequest = true;
-    //check all of the required keys are in the params.
-    if(count(array_intersect($keys, array_keys($params))) != count($keys)) {
-        $validRequest = false;
-    }
-    
-    foreach($keys as $key) {
-        if(!is_string($params[$key]) || strlen($params[$key]) == 0) {
-            $validRequest = false;
-        }
-    }
-    
     //if the request is not valid.
-    if(!$validRequest) {$app->response->setStatusCode(400, "Bad Request")->send();}
+    if(!\Models\BaseModel::validateInput($params, $keys)) {$app->response->setStatusCode(400, "Bad Request")->send();}
     
     $redirect_uri = (array_key_exists('redirect_uri', $params)) ? $params['redirect_uri'] : null;
     $scope = (array_key_exists('scope', $params)) ? explode(',',$params['scope']) 
@@ -96,7 +87,7 @@ $app->get('/oauth/authorize', function() use ($app) {
     $userID = ($app->cookies->has('userID')) ? $app->cookies->get('userID')->getValue() : false;
     
     //render the correct view, injecting the request object into it.
-    $view = array('oauth', '', array('request' => $request, 'type' => '', 'userID' => ''));
+    $view = array('oauth', '', array('request' => $request, 'userID' => ''));
     if(!$userID) {
         //show the log in form.
         $view[1] = 'login';
@@ -106,7 +97,6 @@ $app->get('/oauth/authorize', function() use ($app) {
         $view[2]['userID'] = $userID; 
     }
     
-    $view[2]['type'] = $view[1];
     $app->response->setStatusCode(200, "OK")
                   ->setContent($app['view']->getRender($view[0], $view[1], $view[2]))
                   ->send();
@@ -147,7 +137,6 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
                     'html' => $app['view']->getRender('oauth', 'authorize',
                             array(
                                 'request' => $request,
-                                'type' => 'authorize',
                                 'userID' => ($valid) ? $user->getUserID() : 1 //get userID.
                             )
                     ) //render html.
@@ -159,6 +148,7 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
             //if success, generate code for request.
             //redirect to redirect_uri either way.
             $auth = $app->request->getPost('auth', 'string');
+            $userID = $app->request->getPost('userID', 'string');
             
             //if the auth value is not set or the user declined. 
             if(!isset($auth) || preg_match('/(decline)/i', $auth)) {
@@ -171,7 +161,8 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
             } else {
                 //the user accepted.
                 //generate code.
-                $request->setCode(\Models\Request::generateID(30))->save();
+                $request->setCode(\Models\Request::generateID(30))
+                        ->setUserID($userID)->save();
                 
                 //redirect to redirect_uri.
                 $app->response->redirect($request->getRedirectURI().'?'
@@ -192,9 +183,40 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
  * This is the route defined where a client can use the 'code' parameter returned from 
  * the initial authentication process (/oauth/authorize) in order to get an access token to use on the API.
  * This route takes the following parameters: code (required), client_id (required), client_secret (required).
+ * This route takes a JSON array as data input.
  */
 $app->post('oauth/access_token', function() use ($app) {
     //first check that the required params have been provided.
+    $params = array();
+    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
+        $params[strtolower($key)] = $value;
+    }
+    
+    $keys = array(
+        'client_id',
+        'client_secret',
+        'code'
+    );
+    
+    //if the request is not valid.
+    if(!\Models\BaseModel::validateInput($params, $keys)) {$app->response->setStatusCode(400, "Bad Request")->send();}
+    
+    //then check that the client is valid and the request exists.
+    if(!\Models\Client::checkIsValidClient($params['client_id'], $params['client_secret'])) {
+        $app->response->setStatusCode(403, "Forbidden")->send();
+    }
+    
+    $request = \Models\Request::findRequestByCode($params['code'], $params['client_id']);
+    
+    if(!$request) {$app->response->setStatusCode(403, "Forbidden")->send();}
+    
+    //if all thats okay, issue token based on scope.
+    $token = \Models\Token::generateToken($params['client_id'], $request->getUserID());
+    
+    $app->response->setStatusCode(200, "OK")
+                  ->setContentType('application/json')
+                  ->setJsonContent($token->toArray())
+                  ->send();
     
 });
 

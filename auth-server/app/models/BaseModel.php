@@ -19,6 +19,23 @@ abstract class BaseModel extends Model {
         return substr(base64_encode(hash('sha256', $randomString)), 0, $length);
     }
     
+    public static function validateInput($params, $keys) {
+        
+        $validRequest = true;
+        //check all of the required keys are in the params.
+        if(count(array_intersect($keys, array_keys($params))) != count($keys)) {
+            $validRequest = false;
+        }
+
+        foreach($keys as $key) {
+            if(!is_string($params[$key]) || strlen($params[$key]) == 0) {
+                $validRequest = false;
+            }
+        }
+        
+        return $validRequest;
+    }
+    
     public function getSource();
     public function validation();
 
