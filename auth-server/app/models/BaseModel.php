@@ -36,6 +36,10 @@ abstract class BaseModel extends Model {
         return $validRequest;
     }
     
+    public static function array_equal($a1, $a2) {
+        return !array_diff($a1, $a2) && !array_diff($a2, $a1);
+    }
+    
     public function getSource();
     public function validation();
 

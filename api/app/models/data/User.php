@@ -4,6 +4,7 @@ namespace Models\Data;
 
 class User extends \Phalcon\Mvc\Model {
     
+    //this userID maps to the userID in the auth-server.
     private $userID;
     
     private $emailAddress;

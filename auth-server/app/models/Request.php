@@ -27,12 +27,14 @@ class Request extends BaseModel {
     private $redirectURI;
     //the timestamp of when this request was generated.
     private $timestamp;
-    //an array of permissions requested.
+    //an array of permissions requested, these will only be the
+    //new permissions if the client already has an access token.
+    //these will the permissions that the user has accepted.
     private $scope;
     //a code will be set to this value if the user authenticates this
     //request, this will be null until that point.
     private $code;
-    //the random unguessable string provided by the user.
+    //the random unguessable string provided by the user to protect against CSFA.
     private $state;
     //the user that has authenitcated this request.
     private $userID;

@@ -2,19 +2,17 @@
 
 namespace Models;
 
-use Models\BaseModel,
+use \Phalcon\Mvc\Model,
     Phalcon\Db\Column,
     Phalcon\Mvc\Model\Validator\Uniqueness;
 
-class User extends BaseModel {
+class User extends Model {
     
     private $userID;
     
     private $passwordHash;
     
     private $email;
-    
-    //TODO - add more parameters.
     
     public function getSource() {
         return 'user';
@@ -65,10 +63,7 @@ class User extends BaseModel {
     public static function findUserByCredentials($email, $passwordHash) {
         return \Models\User::findFirst(array(
             'conditions' => 'email = ?1 AND passwordHash = ?2',
-            'bind' => array(
-                1 => $email,
-                2 => $passwordHash
-            ),
+            'bind' => array(1 => $email, 2 => $passwordHash),
             'bindTypes' => array(
                 1 => Column::BIND_TYPE_STR,
                 2 => Column::BIND_TYPE_STR

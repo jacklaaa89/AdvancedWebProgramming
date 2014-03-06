@@ -31,6 +31,8 @@ TODO - Add bootstrap and javascript files.
                         if(response !== undefined) {
                             if(response.valid) {
                                 $('#body').html(response.html);
+                            } else {
+                                window.location = response.url;
                             }
                         }
                     });

@@ -130,6 +130,38 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
             
             $valid = (!is_bool($user));
             
+            if($valid) {
+                //check to see if this client/user combo has a token.
+                $token = \Models\Token::findToken($request->getClientID(), $user->getUserID());
+                if(!is_bool($token)) {
+                    //check if the request has additional parameters, i.e we only need to authorize a
+                    //request if it requires additional scopes.
+                    if(\Models\BaseModel::array_equal($request->getScope(), $token->getScope())) {
+                        //return to the redirect uri, with an error.
+                        $app->response->setStatusCode(200, "OK")
+                                      ->setContentType('application/json')
+                                      ->setJsonContent(array(
+                                          'valid' => false,
+                                          'html' => '',
+                                          'url' => $request->getRedirectURI() . '?'
+                                                   . http_build_query(array(
+                                                       'error' => 'auth_error',
+                                                       'error_description' => 'Auth completed with no new permissions'
+                                                   ))
+                                      ))
+                                      ->send();
+                        //delete the request object.
+                        $request->delete();
+                        return;
+                    }
+                    
+                    //the client needs additional permissions, but we only
+                    //want to display the new permissions required.
+                    $request->setScope(array_diff($request->getScope(), $token->getScope()))
+                            ->save();
+                }
+            }
+            
             //send the response as JSON.
             $app->response->setStatusCode(200, "OK")->setJsonContent(
                 array(
@@ -139,7 +171,12 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
                                 'request' => $request,
                                 'userID' => ($valid) ? $user->getUserID() : 1 //get userID.
                             )
-                    ) //render html.
+                    ),
+                    'url' => $request->getRedirectURI() . '?'
+                            . http_build_query(array(
+                                'error' => 'auth_error',
+                                'error_description' => 'Invalid User.'
+                            )) //render html.
                 )
             )->send(); //send response.
             break;
@@ -149,28 +186,49 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
             //redirect to redirect_uri either way.
             $auth = $app->request->getPost('auth', 'string');
             $userID = $app->request->getPost('userID', 'string');
+            //get the permissions that were approved, json_decode returns
+            //false if this string could not be parsed.
+            $checked = json_decode($app->request->getPost('checked'));
+            $data = array('url' => '');
             
-            //if the auth value is not set or the user declined. 
-            if(!isset($auth) || preg_match('/(decline)/i', $auth)) {
-                $app->response->redirect($request->getRedirectURI().'?'
+            //if the auth value is not set or the user declined, 
+            //or if the permissions array could not be parsed.
+            if(!isset($auth) || preg_match('/(decline)/i', $auth) || !$checked) {
+                //we need to send the URL to send to, to the browser
+                //as we cannot redirect during ajax call.
+                $data['url'] = $request->getRedirectURI().'?'
                         . http_build_query(array(
-                            'error' => 'user_declined',
+                            'error' => 'auth_error',
                             'error_description' => 'user declined permission request',
                             'state' => $request->getState()
-                        )), true);
+                ));
             } else {
                 //the user accepted.
+                
+                //check which permissions the user accepted, this will then be the
+                //requests scope array.
+                $permissions = array();
+                foreach($checked as $scope => $isChecked) {
+                    if($isChecked == '1') {
+                        $permissions[] = $scope;
+                    }
+                }
+                
                 //generate code.
-                $request->setCode(\Models\Request::generateID(30))
+                $request->setScope($permissions)
+                        ->setCode(\Models\Request::generateID(30))
                         ->setUserID($userID)->save();
                 
                 //redirect to redirect_uri.
-                $app->response->redirect($request->getRedirectURI().'?'
+                $data['url'] = $request->getRedirectURI().'?'
                         . http_build_query(array(
                             'code' => $request->getCode(),
                             'state' => $request->getState()
-                        )), true);
+                ));
             }
+            
+            $app->response->setStatusCode(200, "OK")->setJsonContent($data)
+                          ->setContentType('application/json')->send();
             break;
         default:
             //invalid request type.
@@ -206,12 +264,27 @@ $app->post('oauth/access_token', function() use ($app) {
         $app->response->setStatusCode(403, "Forbidden")->send();
     }
     
+    //find the request based on the code.
     $request = \Models\Request::findRequestByCode($params['code'], $params['client_id']);
     
     if(!$request) {$app->response->setStatusCode(403, "Forbidden")->send();}
     
-    //if all thats okay, issue token based on scope.
-    $token = \Models\Token::generateToken($params['client_id'], $request->getUserID());
+    //check if this client already has a token issued, and we need to modify permissions.
+    $token = \Models\Token::findToken($request->getClientID(), $request->getUserID());
+    
+    if(!is_bool($token)) {
+        //add the new permissions to the token, the request scope is the new permissions
+        //that the user authorised.
+        $token->setScope(array_merge($token->getScope(), $request->getScope()))
+              ->setUpdated(time())
+              ->save();
+    } else {
+        //generate a new token.
+        $token = \Models\Token::generateToken($request->getClientID(), $request->getUserID(), $request->getScope());
+    }
+    
+    //delete this request object.
+    $request->delete();
     
     $app->response->setStatusCode(200, "OK")
                   ->setContentType('application/json')

@@ -6,6 +6,11 @@ use Models\BaseModel,
     \Phalcon\Db\Column,
     \Phalcon\Mvc\Model\Validator\Uniqueness;
 
+/**
+ * This is an encapsulation of an access token as provided by the auth-server.
+ * While the user has allowed access, this token will be used, so emulate 'persistant' authentication.
+ * Obivously if this token is deleted, the user has revoked permissions, also the scope can be modified.
+ */
 class Token extends BaseModel {
     
     //the actual token, this will be unique.
@@ -18,10 +23,10 @@ class Token extends BaseModel {
     private $created;
     
     //the timestamp of when this token is validTo.
-    private $validTo;
+    private $updated;
     
     //the permissions this token has over the
-    //users information.
+    //users information, these can be modified by the user.
     private $scope;
     
     //the client that can use this token.
@@ -66,8 +71,8 @@ class Token extends BaseModel {
         return $this->created;
     }
     
-    public function getValidTo() {
-        return $this->validTo;
+    public function getUpdated() {
+        return $this->updated;
     }
     
     public function getClientID() {
@@ -97,8 +102,8 @@ class Token extends BaseModel {
         return $this;
     }
     
-    public function setValidTo($validTo) {
-        $this->validTo = $validTo;
+    public function setUpdated($updated) {
+        $this->updated = $updated;
         return $this;
     }
     
@@ -130,7 +135,7 @@ class Token extends BaseModel {
         $token->setToken(\Models\Token::generateID(30))
               ->setTokenType()
               ->setCreated(time())
-              ->setValidTo(strtotime('+30 minutes'))
+              ->setUpdated(time())
               ->setScope($scope)
               ->setClientID($clientID)
               ->setUserID($userID);
@@ -141,12 +146,24 @@ class Token extends BaseModel {
     }
     
     public static function findToken($token) {
-        return \Models\Tokens::findFirst(array(
+        return \Models\Token::findFirst(array(
             'conditions' => 'token = ?1',
             'bind' => array(1 => $token),
             'bindTypes' => array(1 => Column::BIND_TYPE_STR)
         ));
     }
+    
+    public static function findToken($clientID, $userID) {
+        return \Models\Token::findFirst(array(
+            'conditions' => 'clientID = ?1 AND userID = ?2',
+            'bind' => array(
+                1 => $clientID, 2 => $userID
+            ),
+            'bindTypes' => array(
+                1 => Column::BIND_TYPE_STR, 2 => Column::BIND_TYPE_STR
+            )
+        ));
+    } 
     
 }
 
