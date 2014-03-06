@@ -23,9 +23,9 @@ $di = new \Phalcon\DI\FactoryDefault();
 $di->set('db', function() {
     return new Mysql(
         array(
-            'host' => 'locahost',
+            'host' => 'localhost',
             'username' => 'root',
-            'password' => 'root',
+            'password' => '',
             'dbname' => 'oauth'
         )
     );
@@ -72,7 +72,7 @@ $app->get('/oauth/authorize', function() use ($app) {
     );
     
     //if the request is not valid.
-    if(!\Models\BaseModel::validateInput($params, $keys)) {$app->response->setStatusCode(400, "Bad Request")->send();}
+    if(!\Models\BaseModel::validateInput($params, $keys)) {$app->response->setStatusCode(400, "Bad Request")->send();return;}
     
     $redirect_uri = (array_key_exists('redirect_uri', $params)) ? $params['redirect_uri'] : null;
     $scope = (array_key_exists('scope', $params)) ? explode(',',$params['scope']) 
@@ -81,7 +81,7 @@ $app->get('/oauth/authorize', function() use ($app) {
     //build a request and store it.
     $request = \Models\Request::requestBuilder($params['client_id'], $scope, $params['state'], $redirect_uri);
     
-    if(!$request) {$app->response->setStatusCode(400, "Bad Request")->send();}
+    if(!$request) {$app->response->setStatusCode(400, "Bad Request")->send();return;}
     
     //the request is valid, check if this user is already logged in.
     $userID = ($app->cookies->has('userID')) ? $app->cookies->get('userID')->getValue() : false;
