@@ -2,11 +2,11 @@
 
 namespace Models;
 
-use \Phalcon\Mvc\Model,
+use \Models\BaseModel,
     \Phalcon\Db\Column,
     \Phalcon\Mvc\Model\Validator\Uniqueness;
 
-class User extends Model {
+class User extends BaseModel {
     
     private $userID;
     
@@ -69,6 +69,32 @@ class User extends Model {
                 2 => Column::BIND_PARAM_STR
             )
         ));
+    }
+    
+    public static function findUserByEmail($email) {
+        return \Models\User::findFirst(array(
+            'conditions' => 'email = ?1',
+            'bind' => array(1 => $email),
+            'bindTypes' => array(
+                1 => Column::BIND_PARAM_STR
+            )
+        ));
+    }
+    
+    public static function addNewUser($email, $passwordHash) {
+        if(!self::findUserByEmail($email)) {
+            $user = new \Models\User();
+            $user->setUserID(\Models\User::generateID())
+                 ->setEmail($email)
+                 ->setPasswordHash($passwordHash);
+            if(!$user->save()) {
+                //has to be the userID as already checked if a user with same email
+                //exists.
+                \Models\User::addNewUser($email, $passwordHash);
+            }
+            return $user;
+        }
+        return false;
     }
     
 }

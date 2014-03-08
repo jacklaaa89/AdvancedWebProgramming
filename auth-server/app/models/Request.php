@@ -88,6 +88,10 @@ class Request extends BaseModel {
             return false;
         }
     }
+    
+    public function getClientID() {
+        return $this->clientID;
+    }
 
     /**
      * This function validates that this request is valid.

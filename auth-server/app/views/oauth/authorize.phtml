@@ -8,22 +8,39 @@ TODO - Add bootstrap and javascript files.
         <title>Authorize</title>
     </head>
     <body id="body">
-        <?php foreach($request->getScope() as $scope) { ?>
-        <ul>
-            <input type="checkbox" data-key="<?php echo strtolower($scope); ?>"
-                   data-checked="1" checked="checked" class="permission"/> <?php echo $scope; ?>
-        </ul>
-        <?php } ?>
-        <button class="button" data-auth="accept">Accept</button>
-        <button class="button" data-auth="decline">Decline</button>
+        <div class='panel panel-default'>
+            <div class='panel-heading'>
+                <?php echo $request->getClient()->getName(); ?> wants access to the following information:
+            </div>
+            <div class='panel-body'>
+                <ul class='list-group'>
+                <?php foreach($request->getScope() as $scope) { ?>
+                    <li class='list-group-item'>
+                        <div class='input-group'>
+                            <span class='input-group-addon'>
+                                <input type="checkbox" data-key="<?php echo strtolower($scope); ?>"
+                                 data-checked="1" checked="checked" class="permission"/>
+                            </span>
+                            <input type="text" disabled class='form-control' value='<?php echo $scope; ?>'/>
+                        </div>
+                    </li>
+                <?php } ?>
+                </ul>
+            </div>
+            <div class='panel-footer'>
+                <button class="button btn btn-primary" data-auth="accept">Accept</button>
+                <button class="button btn btn-default" data-auth="decline">Decline</button>
+            </div>
+        </div>
+        <style>body { padding:20px;}.panel { width:50%;} .list-group-item {border:none;}.list-group{margin-bottom:0;}.form-control[disabled]{cursor:default;}</style>
         <script type="text/javascript">
             $(document).ready(function(){
                 $('.button').click(function(){
-                    var checked = [];
+                    var checked = {};
                     $('.permission').each(function(){
-                        checked[$(this).data('key')] = $(this).data('checked');
+                        checked[$(this).data('key')] = $(this).attr('data-checked');
                     });
-                    $.ajax({
+                    var r = $.ajax({
                         'url' : '/oauth/background/authorize/'+'<?php echo $request->getRequestID(); ?>',
                         'dataType' : 'JSON',
                         'data' : {
@@ -34,14 +51,14 @@ TODO - Add bootstrap and javascript files.
                         'type' : 'POST',
                         'error' : function() {
                             alert('An error occured');
-                        },
-                        'done' : function(response) {
-                            window.location = response.url;
                         }
+                    });
+                    r.done(function(response){
+                        window.location = response.url;
                     });
                 });
                 $('.permission').change(function() {
-                    $(this).data('checked', ($(this).data('checked') === '1') ? '0' : '1');
+                    $(this).attr('data-checked', $(this).attr('data-checked') == '1' ? '0' : '1');
                 });
             });
         </script>

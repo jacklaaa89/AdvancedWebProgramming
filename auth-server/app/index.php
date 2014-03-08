@@ -31,6 +31,16 @@ $di->set('db', function() {
     );
 });
 
+//Register the flashSession service with custom CSS classes
+$di->set('flashSession', function(){
+    $flash = new \Phalcon\Flash\Session(array(
+        'error' => 'alert alert-error',
+        'success' => 'alert alert-success',
+        'notice' => 'alert alert-info',
+    ));
+    return $flash;
+});
+
 //need to set a global key in the crypt for cookie management encryption.
 $di->set('crypt', function() {
     $crypt = new Phalcon\Crypt();
@@ -55,6 +65,7 @@ $app['view'] = function() {
  * scope (required), and redirect_uri (optional).
  */
 $app->get('/oauth/authorize', function() use ($app) {
+    
     //format params
     $params = array();
     $filter = new Filter();
@@ -109,14 +120,14 @@ $app->get('/oauth/authorize', function() use ($app) {
  * adds another layer of security to the process. This route is also only valid when a TYPE and a valid
  * requestID are provided.
  */
-$app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', function($type, $requestID) use ($app) {
+$app->post('/oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', function($type, $requestID) use ($app) {
     //this route is a ajax only route.
     if(!$app->request->isAjax()) {$app->response->setStatusCode(404, "Not Found")->send();return;}
     
     //get the request object.
     $request = \Models\Request::findRequestByID($requestID);
     
-    if(!$request) {$app->response->setStatusCode(404, "Not Found")->send();} //request was not found.
+    if(!$request) {$app->response->setStatusCode(404, "Not Found")->send();return;} //request was not found.
     
     //get the type.
     switch(strtoupper($type)) {
@@ -161,7 +172,6 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
                             ->save();
                 }
             }
-            
             //send the response as JSON.
             $app->response->setStatusCode(200, "OK")->setJsonContent(
                 array(
@@ -243,7 +253,7 @@ $app->post('oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functio
  * This route takes the following parameters: code (required), client_id (required), client_secret (required).
  * This route takes a JSON array as data input.
  */
-$app->post('oauth/access_token', function() use ($app) {
+$app->post('/oauth/access_token', function() use ($app) {
     //first check that the required params have been provided.
     $params = array();
     foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
@@ -257,17 +267,18 @@ $app->post('oauth/access_token', function() use ($app) {
     );
     
     //if the request is not valid.
-    if(!\Models\BaseModel::validateInput($params, $keys)) {$app->response->setStatusCode(400, "Bad Request")->send();}
+    if(!\Models\BaseModel::validateInput($params, $keys)) {$app->response->setStatusCode(400, "Bad Request")->send();return;}
     
     //then check that the client is valid and the request exists.
     if(!\Models\Client::checkIsValidClient($params['client_id'], $params['client_secret'])) {
         $app->response->setStatusCode(403, "Forbidden")->send();
+        return;
     }
     
     //find the request based on the code.
     $request = \Models\Request::findRequestByCode($params['code'], $params['client_id']);
     
-    if(!$request) {$app->response->setStatusCode(403, "Forbidden")->send();}
+    if(!$request) {$app->response->setStatusCode(403, "Forbidden")->send();return;}
     
     //check if this client already has a token issued, and we need to modify permissions.
     $token = \Models\Token::findToken($request->getClientID(), $request->getUserID());

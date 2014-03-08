@@ -1,7 +1,4 @@
 <!DOCTYPE html>
-<!--
-TODO - Add bootstrap and javascript files.
--->
 <html>
     <head>
         <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
@@ -11,36 +8,25 @@ TODO - Add bootstrap and javascript files.
         <title></title>
     </head>
     <body id="body">
-        <input type="hidden" id="requestID" value="<?php echo $request->getRequestID(); ?>"/>
-        <input type="email" placeholder="Email" id="email"/>
-        <input type="password" placeholder="Password" id="pass"/>
-        <button id="submit">Submit</button>
-        <script type="text/javascript">
-            $(document).ready(function(){
-                $('#submit').click(function(){
-                    var r = $.ajax({
-                        'url' : '/oauth/background/login/'+$('#requestID').val(),
-                        'dataType' : 'JSON',
-                        'data' : {
-                            'email' : $('#email').val(),
-                            'pass' : $('#pass').val()
-                        },
-                        'type' : 'POST',
-                        'error' : function() {
-                            alert('An error occured');
-                        }
-                    });
-                    r.done(function(response){
-                        if(response !== undefined) {
-                            if(response.valid) {
-                                $('#body').html(response.html);
-                            } else {
-                                window.location = response.url;
-                            }
-                        }
-                    });
-                });
-            });
-        </script>
+        <p><?php $this->flashSession->output(); ?></p>
+        <div class='panel panel-default'>
+            <div class='panel-heading'>
+                Please Login to your account.
+            </div>
+            <div class='panel-body'>
+                <input  class='form-control' data-placement='right' title='Email Address'
+                        data-content='Please input a valid email address, For example "someone@ahost.com".'
+                        type="email" placeholder="Email" id="email" required/>
+                <input type="password" data-placement='bottom' title='Password' class='form-control'
+                       placeholder="Password" id="pass" data-content='Please input a password. A password needs to be at least 6 characters and can 
+                       only contain A-Z, 0-9, a-z, _ or -' required/>
+            </div>
+            <div class='panel-footer'>
+                <button id="submit" class="btn btn-primary">Submit</button>
+            </div>
+        </div>
+        <style>.panel input { margin-top:10px;}body { padding:20px;}.panel { width:50%;}</style>
+        <script type="text/javascript" src='/js/login.js'></script>
+        <script type="text/javascript">init('<?php echo $request->getRequestID(); ?>');</script>
     </body>
 </html>
