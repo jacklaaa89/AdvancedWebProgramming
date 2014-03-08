@@ -43,6 +43,10 @@ class BaseModel extends Model {
         if (!is_bool($token)) {
             //check if the request has additional parameters, i.e we only need to authorize a
             //request if it requires additional scopes.
+            
+            //TODO - hyperthetical if request scope is user, and token has user,message scope
+            //then the token already covers all of the permissions needed, and thus auth is not
+            //required.
             if (self::array_equal($request->getScope(), $token->getScope())) {
                 //delete the request object.
                 $r_uri = $request->getRedirectURI();
@@ -75,6 +79,8 @@ class BaseModel extends Model {
             //want to display the new permissions required.
             $request->setScope(array_diff($request->getScope(), $token->getScope()))
                     ->save();
+            
+            die(var_dump($request));
         }
         return true;
     }
