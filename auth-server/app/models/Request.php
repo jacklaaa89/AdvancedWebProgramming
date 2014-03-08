@@ -145,6 +145,10 @@ class Request extends BaseModel {
      * @return array the permission array.
      */
     public function getScope() {
+        //make sure its an array.
+        if(!is_array($this->scope)) {
+            $this->scope = explode(',', $this->scope);
+        }
         return $this->scope;
     }
     

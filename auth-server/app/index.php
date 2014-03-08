@@ -103,6 +103,11 @@ $app->get('/oauth/authorize', function() use ($app) {
         //show the log in form.
         $view[1] = 'login';
     } else {
+        //check to see if this user/client combo already has a token.
+        $token = \Models\Token::findToken($params['client_id'], $userID);
+        if(!\Models\BaseModel::checkTokenPermissions($request, $token, $app, false)) {
+            return;
+        }
         //show authorise page.
         $view[1] = 'authorize';
         $view[2]['userID'] = $userID; 
@@ -144,33 +149,17 @@ $app->post('/oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functi
             if($valid) {
                 //check to see if this client/user combo has a token.
                 $token = \Models\Token::findToken($request->getClientID(), $user->getUserID());
-                if(!is_bool($token)) {
-                    //check if the request has additional parameters, i.e we only need to authorize a
-                    //request if it requires additional scopes.
-                    if(\Models\BaseModel::array_equal($request->getScope(), $token->getScope())) {
-                        //return to the redirect uri, with an error.
-                        $app->response->setStatusCode(200, "OK")
-                                      ->setContentType('application/json')
-                                      ->setJsonContent(array(
-                                          'valid' => false,
-                                          'html' => '',
-                                          'url' => $request->getRedirectURI() . '?'
-                                                   . http_build_query(array(
-                                                       'error' => 'auth_error',
-                                                       'error_description' => 'Auth completed with no new permissions'
-                                                   ))
-                                      ))
-                                      ->send();
-                        //delete the request object.
-                        $request->delete();
-                        return;
-                    }
-                    
-                    //the client needs additional permissions, but we only
-                    //want to display the new permissions required.
-                    $request->setScope(array_diff($request->getScope(), $token->getScope()))
-                            ->save();
+                if(!\Models\BaseModel::checkTokenPermissions($request, $token, $app)) {
+                    return; //stop execution of this route.
                 }
+                
+                //check to see if we should keep this user logged in.
+                $keep = $app->request->getPost('keep', 'int');
+                if($keep) {
+                    //set a cookie for a day.
+                    $app->cookies->set('userID', $user->getUserID(), time() + (60 * 60 * 24));
+                }
+                
             }
             //send the response as JSON.
             $app->response->setStatusCode(200, "OK")->setJsonContent(
@@ -212,6 +201,8 @@ $app->post('/oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functi
                             'error_description' => 'user declined permission request',
                             'state' => $request->getState()
                 ));
+                //delete the request.
+                $request->delete();
             } else {
                 //the user accepted.
                 
@@ -253,11 +244,18 @@ $app->post('/oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functi
  * This route takes the following parameters: code (required), client_id (required), client_secret (required).
  * This route takes a JSON array as data input.
  */
-$app->post('/oauth/access_token', function() use ($app) {
+$app->get('/oauth/access_token', function() use ($app) {
     //first check that the required params have been provided.
+//    $params = array();
+//    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
+//        $params[strtolower($key)] = $value;
+//    }
+    //format params
     $params = array();
-    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
-        $params[strtolower($key)] = $value;
+    $filter = new Filter();
+    foreach($_GET as $key => $value) {
+        //sanitize the input.
+        $params[strtolower($key)] = $filter->sanitize($value, 'string');
     }
     
     $keys = array(
@@ -286,12 +284,12 @@ $app->post('/oauth/access_token', function() use ($app) {
     if(!is_bool($token)) {
         //add the new permissions to the token, the request scope is the new permissions
         //that the user authorised.
-        $token->setScope(array_merge($token->getScope(), $request->getScope()))
+        $token->setScope(array_unique(array_merge($token->getScope(), $request->getScope())))
               ->setUpdated(time())
               ->save();
     } else {
         //generate a new token.
-        $token = \Models\Token::generateToken($request->getClientID(), $request->getUserID(), $request->getScope());
+        $token = \Models\Token::generateToken($request->getClientID(), $request->getUserID(), array_unique($request->getScope()));
     }
     
     //delete this request object.

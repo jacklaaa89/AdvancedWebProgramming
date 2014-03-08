@@ -5,7 +5,7 @@
         <script type="text/javascript" src="/js/jquery-1.11.0.min.js"></script>
         <script type="text/javascript" src="/js/bootstrap.min.js"></script>
         <meta charset="UTF-8">
-        <title></title>
+        <title>Authorize</title>
     </head>
     <body id="body">
         <p><?php $this->flashSession->output(); ?></p>
@@ -23,6 +23,7 @@
             </div>
             <div class='panel-footer'>
                 <button id="submit" class="btn btn-primary">Submit</button>
+                <span class='pull-right'><input id='logged-in' type='checkbox' checked data-checked='1'/> Keep you logged in?</span>
             </div>
         </div>
         <style>.panel input { margin-top:10px;}body { padding:20px;}.panel { width:50%;}</style>

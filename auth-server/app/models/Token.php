@@ -84,6 +84,9 @@ class Token extends BaseModel {
     }
     
     public function getScope() {
+        if(!is_array($this->scope)) {
+            $this->scope = explode(',', $this->scope);
+        }
         return $this->scope;
     }
     
@@ -143,6 +146,7 @@ class Token extends BaseModel {
         if(!$token->save()) {
             \Models\Token::generateToken($clientID, $userID, $scope);
         }
+        return $token;
     }
     
     public static function findToken($clientID, $userID) {
