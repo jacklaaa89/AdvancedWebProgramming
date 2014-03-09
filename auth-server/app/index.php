@@ -256,11 +256,19 @@ $app->post('/oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functi
  * This route takes the following parameters: code (required), client_id (required), client_secret (required).
  * This route takes a JSON array as data input.
  */
-$app->post('/oauth/access_token', function() use ($app) {
-    //first check that the required params have been provided.
+$app->get('/oauth/access_token', function() use ($app) {
+//    //first check that the required params have been provided.
+//    $params = array();
+//    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
+//        $params[strtolower($key)] = $value;
+//    }
+    
+    //format params
     $params = array();
-    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
-        $params[strtolower($key)] = $value;
+    $filter = new Filter();
+    foreach($_GET as $key => $value) {
+        //sanitize the input.
+        $params[strtolower($key)] = $filter->sanitize($value, 'string');
     }
     
     $keys = array(

@@ -36,7 +36,7 @@ TODO - Add bootstrap and javascript files.
         <style>body { padding:20px;}.panel { width:50%;} .form-control[disabled]{cursor:default;}.panel-footer{border-top:none;}</style>
         <script type="text/javascript" src="/js/authorize.js"></script>
         <script type="text/javascript">
-            init('<?php echo $request->getRequestID(); ?>');
+            init('<?php echo $request->getRequestID(); ?>', '<?php echo $userID; ?>');
         </script>
     </body>
 </html>

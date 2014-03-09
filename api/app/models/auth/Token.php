@@ -21,6 +21,10 @@ class Token extends \Phalcon\Mvc\Model {
         return 'token';
     }
     
+    public function afterFetch() {
+        $this->scope = explode(',', $this->scope);
+    }
+    
     public function initialize() {
         $this->setConnectionService('authdb');
     }
@@ -30,12 +34,15 @@ class Token extends \Phalcon\Mvc\Model {
         return \Models\Auth\Token::findFirst(array(
             'conditions' => 'token = ?1',
             'bind' => array(1 => $token),
-            'bindTypes' => array(1 => Column::BIND_TYPE_STR)
+            'bindTypes' => array(1 => Column::BIND_PARAM_STR)
         ));
         
     }
     
     public function getScope() {
+        if(!is_array($this->scope)) {
+            $this->scope = explode(',', $this->scope);
+        }
         return $this->scope;
     }
     

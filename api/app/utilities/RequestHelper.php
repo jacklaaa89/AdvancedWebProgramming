@@ -9,7 +9,11 @@ class RequestHelper {
      * @param array $headers the array of request headers.
      * @return mixed the Token object on success, FALSE otherwise.
      */
-    public static function getToken($headers) {
+    public static function getToken($headers, $tokenParam) {
+        //check if the tokenParam has been set.
+        if(isset($tokenParam) && !is_bool($tokenParam) && strlen($tokenParam) != 0) {
+            return \Models\Auth\Token::findToken($tokenParam);
+        }
         //check if the auth header has been set.
         if(!array_key_exists(strtoupper('authorization'), $headers)) {
             return false;

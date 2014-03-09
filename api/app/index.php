@@ -24,7 +24,7 @@ $di->set('authdb', function() {
     return new Mysql(array(
         'host' => 'localhost', //in reality this would be on a seperate server.
         'username' => 'root',
-        'password' => 'root',
+        'password' => '',
         'dbname' => 'oauth'
     ));
 });
@@ -34,8 +34,8 @@ $di->set('db', function(){
     return new Mysql(array(
         'host' => 'localhost',
         'username' => 'root',
-        'password' => 'root',
-        'dbname' => 'api'
+        'password' => '',
+        'dbname' => 'data'
     ));
 });
 
@@ -45,7 +45,7 @@ $app = new Micro($di);
 //all of this data is obviously dummy data, this is just a proof of concept.
 $app->get('/user', function() use ($app) {
     //try to get the token object from this requests header.
-    $token = \Utilities\RequestHelper::getToken($app->request->getHeaders());
+    $token = \Utilities\RequestHelper::getToken($app->request->getHeaders(), $app->request->getQuery('access_token', 'alphanum'));
     
     //if the token could not be found.
     if(!$token) {
@@ -66,9 +66,9 @@ $app->get('/user', function() use ($app) {
     
     //return data on user.
     $user = \Models\Data\User::findFirst(array(
-        'conditions' => 'userID => ?1',
+        'conditions' => 'userID = ?1',
         'bind' => array(1 => $token->getUserID()),
-        'bindTypes' => array(1 => Column::BIND_TYPE_STR)
+        'bindTypes' => array(1 => Column::BIND_PARAM_STR)
     ));
     
     //merge user details to array.
@@ -78,13 +78,13 @@ $app->get('/user', function() use ($app) {
     }
     
     //send the data.
-    $app->setStatusCode(200, "OK")->setContentType('application/json')
+    $app->response->setStatusCode(200, "OK")->setContentType('application/json')
         ->setJsonContent($data)->send();
 });
 
 $app->get('/messages', function() use ($app) {
     //try to get the token object from this requests header.
-    $token = \Utilities\RequestHelper::getToken($app->request->getHeaders());
+    $token = \Utilities\RequestHelper::getToken($app->request->getHeaders(), $app->request->getQuery('access_token', 'alphanum'));
     
     //if the token could not be found.
     if(!$token) {
@@ -107,7 +107,7 @@ $app->get('/messages', function() use ($app) {
     $messages = \Models\Data\Message::find(array(
         'conditions' => 'userID = ?1',
         'bind' => array(1 => $token->getUserID()),
-        'bindTypes' => array(1 => Column::BIND_TYPE_STR)
+        'bindTypes' => array(1 => Column::BIND_PARAM_STR)
     ));
     
     $data = array();
@@ -116,7 +116,7 @@ $app->get('/messages', function() use ($app) {
     }
     
     //send the data.
-    $app->setStatusCode(200, "OK")->setContentType('application/json')
+    $app->response->setStatusCode(200, "OK")->setContentType('application/json')
         ->setJsonContent($data)->send();
 });
 
@@ -127,4 +127,3 @@ $app->notFound(function() use ($app){
 
 //handle the request.
 $app->handle();
-

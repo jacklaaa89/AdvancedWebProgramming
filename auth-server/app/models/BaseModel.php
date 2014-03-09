@@ -36,13 +36,13 @@ class BaseModel extends Model {
     }
 
     public static function hasNewPermissions($requestScope, $tokenScope) {
-        for ($i = 0; $i < count($requestScope); $i++) {
-            if (in_array($tokenScope[$i], $tokenScope)) {
-                unset($tokenScope[$i]);
+        for ($i = 0; $i < count($tokenScope); $i++) {
+            if (in_array($tokenScope[$i], $requestScope)) {
+                unset($requestScope[$i]);
             }
         }
-        sort($tokenScope);
-        if (count($tokenScope) > 0) {
+        sort($requestScope);
+        if (count($requestScope) > 0) {
             return $requestScope;
         }
         return false;

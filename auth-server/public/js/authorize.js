@@ -1,4 +1,4 @@
-function init(url)
+function init(url, userID) {
 $(document).ready(function() {
     $('.button').click(function() {
         var checked = {};
@@ -10,7 +10,7 @@ $(document).ready(function() {
             'dataType': 'JSON',
             'data': {
                 'auth': $(this).data('auth'),
-                'userID': '<?php echo $userID; ?>',
+                'userID': userID,
                 'checked': JSON.stringify(checked)
             },
             'type': 'POST',
@@ -26,5 +26,4 @@ $(document).ready(function() {
         $(this).attr('data-checked', $(this).attr('data-checked') == '1' ? '0' : '1');
     });
 });
-
-
+}
