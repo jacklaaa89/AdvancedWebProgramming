@@ -95,7 +95,7 @@ $app->get('/oauth/authorize', function() use ($app) {
     if(!$request) {$app->response->setStatusCode(400, "Bad Request")->send();return;}
     
     //the request is valid, check if this user is already logged in.
-    $userID = ($app->cookies->has('userID')) ? $app->cookies->get('userID')->getValue() : false;
+    $userID = ($app->cookies->has('userID')) ? $filter->sanitize($app->cookies->get('userID')->getValue(), 'alphanum') : false;
     
     //render the correct view, injecting the request object into it.
     $view = array('oauth', '', array('request' => $request, 'userID' => ''));
@@ -105,8 +105,9 @@ $app->get('/oauth/authorize', function() use ($app) {
     } else {
         //check to see if this user/client combo already has a token.
         $token = \Models\Token::findToken($params['client_id'], $userID);
-        if(!\Models\BaseModel::checkTokenPermissions($request, $token, $app, false)) {
-            return;
+        //check that there are some new permissions to add to this token.
+        if(is_string(($link = \Models\BaseModel::checkTokenPermissions($request, $token)))) {
+            return $app->response->redirect($link, true);
         }
         //show authorise page.
         $view[1] = 'authorize';
@@ -149,19 +150,34 @@ $app->post('/oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functi
             if($valid) {
                 //check to see if this client/user combo has a token.
                 $token = \Models\Token::findToken($request->getClientID(), $user->getUserID());
-                if(!\Models\BaseModel::checkTokenPermissions($request, $token, $app)) {
+                //check to that new permissions were requested.
+                if(is_string(($link = \Models\BaseModel::checkTokenPermissions($request, $token)))) {
+                    $app->response->setStatusCode(200, "OK")
+                                  ->setContentType('application/json')
+                                  ->setJsonContent(array(
+                                      'valid' => false,
+                                      'html' => '',
+                                      'url' => $link
+                    ))->send();
                     return; //stop execution of this route.
                 }
                 
                 //check to see if we should keep this user logged in.
                 $keep = $app->request->getPost('keep', 'int');
                 if($keep) {
+                    $filter = new Filter();
                     //set a cookie for a day.
-                    $app->cookies->set('userID', $user->getUserID(), time() + (60 * 60 * 24));
+                    $app->cookies->set('userID', $filter->sanitize($user->getUserID(), 'alphanum'), time() + (60 * 60 * 24));
                 }
                 
             }
             //send the response as JSON.
+            if(!$valid) {
+                //if the user credentials were not correct, trigger error() event in ajax.
+                $app->response->setStatusCode(403, "Forbidden")->send();
+                return;
+            }
+            
             $app->response->setStatusCode(200, "OK")->setJsonContent(
                 array(
                     'valid' => $valid, //check if user is valid.
@@ -171,11 +187,7 @@ $app->post('/oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functi
                                 'userID' => ($valid) ? $user->getUserID() : 1 //get userID.
                             )
                     ),
-                    'url' => $request->getRedirectURI() . '?'
-                            . http_build_query(array(
-                                'error' => 'auth_error',
-                                'error_description' => 'Invalid User.'
-                            )) //render html.
+                    'url' => '', //render html.
                 )
             )->send(); //send response.
             break;
@@ -244,18 +256,11 @@ $app->post('/oauth/background/{type:[A-Za-z]+}/{requestID:[A-Za-z0-9]+}', functi
  * This route takes the following parameters: code (required), client_id (required), client_secret (required).
  * This route takes a JSON array as data input.
  */
-$app->get('/oauth/access_token', function() use ($app) {
+$app->post('/oauth/access_token', function() use ($app) {
     //first check that the required params have been provided.
-//    $params = array();
-//    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
-//        $params[strtolower($key)] = $value;
-//    }
-    //format params
     $params = array();
-    $filter = new Filter();
-    foreach($_GET as $key => $value) {
-        //sanitize the input.
-        $params[strtolower($key)] = $filter->sanitize($value, 'string');
+    foreach( (array) $app->request->getJsonRawBody() as $key => $value) {
+        $params[strtolower($key)] = $value;
     }
     
     $keys = array(
@@ -279,6 +284,8 @@ $app->get('/oauth/access_token', function() use ($app) {
     if(!$request) {$app->response->setStatusCode(403, "Forbidden")->send();return;}
     
     //check if this client already has a token issued, and we need to modify permissions.
+    //we dont need to check the permissions of this token as code would not have
+    //been supplied if no new permissions where requested.
     $token = \Models\Token::findToken($request->getClientID(), $request->getUserID());
     
     if(!is_bool($token)) {

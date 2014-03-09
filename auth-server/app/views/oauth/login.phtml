@@ -8,7 +8,9 @@
         <title>Authorize</title>
     </head>
     <body id="body">
-        <p><?php $this->flashSession->output(); ?></p>
+        <div class="alert alert-danger" id="error" style="display: none;width:50%;">
+            Username or Password was incorrect.
+        </div>
         <div class='panel panel-default'>
             <div class='panel-heading'>
                 Please Login to your account.
