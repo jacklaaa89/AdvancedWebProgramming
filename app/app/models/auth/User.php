@@ -70,6 +70,19 @@ class User extends BaseModel {
         ));
     }
     
+    public function getApplications() {
+        if(!isset($this->userID)) {
+            return array();
+        }
+        
+        return \Model\Auth\Application::find(array(
+            'conditions' => 'userID = ?1',
+            'bind' => array(1 => $this->userID),
+            'bindTypes' => array(1 => \Phalcon\Db\Column::BIND_PARAM_STR)
+        ));
+        
+    }
+    
     public function setPasswordHash($passwordHash) {
         $this->passwordHash = $passwordHash;
         return $this;
@@ -103,6 +116,17 @@ class User extends BaseModel {
             'bind' => array(1 => $emailAddress),
             'bindTypes' => array(1 => \Phalcon\Db\Column::BIND_PARAM_STR)
         ));
+    }
+    
+    public static function checkUsersCredentials($emailAddress, $passwordHash) {
+        $user = \Model\Auth\User::findFirst(array(
+            'conditions' => 'email = ?1 AND passwordHash = ?2',
+            'bind' => array(1 => $emailAddress, 2 => $passwordHash),
+            'bindTypes' => array(1 => \Phalcon\Db\Column::BIND_PARAM_STR,
+                                 2 => \Phalcon\Db\Column::BIND_PARAM_STR)
+        ));
+        
+        return $user;
     }
     
 }

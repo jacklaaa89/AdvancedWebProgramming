@@ -13,7 +13,7 @@ use \Phalcon\Events\Event,
 class Security extends Plugin {
     
     public function beforeDispatchRoute(Event $event, Dispatcher $dispatcher) {
-        $role = (!$this->session->get('auth')) ? 'Guests' : 'Users';
+        $role = (!$this->session->has('auth')) ? 'Guests' : 'Users';
         
         $controller = $dispatcher->getControllerName();
         $action = $dispatcher->getActionName();
@@ -51,7 +51,7 @@ class Security extends Plugin {
         
         //define areas.
         $private = array(
-            'dashboard' => array('index', 'permissions')
+            'dashboard' => array('index', 'permissions', 'background')
         );
         
         $public = array(
