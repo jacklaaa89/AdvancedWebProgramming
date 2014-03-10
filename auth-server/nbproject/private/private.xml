@@ -2,14 +2,6 @@
 <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
-        <group>
-            <file>file:/C:/work/AdvancedWebProgramming/auth-server/app/views/oauth/authorize.phtml</file>
-            <file>file:/C:/work/AdvancedWebProgramming/auth-server/app/models/Token.php</file>
-            <file>file:/C:/work/AdvancedWebProgramming/auth-server/public/js/login.js</file>
-            <file>file:/C:/work/AdvancedWebProgramming/auth-server/app/models/BaseModel.php</file>
-            <file>file:/C:/work/AdvancedWebProgramming/auth-server/app/models/Request.php</file>
-            <file>file:/C:/work/AdvancedWebProgramming/auth-server/app/index.php</file>
-            <file>file:/C:/work/AdvancedWebProgramming/auth-server/app/views/oauth/login.phtml</file>
-        </group>
+        <group/>
     </open-files>
 </project-private>
