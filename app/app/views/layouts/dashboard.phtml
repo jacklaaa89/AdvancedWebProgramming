@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Example Application</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+        <script type="text/javascript" src="/js/jquery-1.11.0.min.js"></script>
+        <script type="text/javascript" src="/js/bootstrap.min.js"></script>
+    </head>
+    <body>
+        <nav class="navbar navbar-default navbar-static-top" role="navigation">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <a href="/dashboard/<?php echo $user->getUserID(); ?>" title="Dashboard Home" class="navbar-brand">Dashboard</a>
+                </div>
+                <ul class="nav navbar-nav">
+                    <li class="<?php echo $permission; ?>"><a href="/dashboard/<?php echo $user->getUserID(); ?>/permissions" title="Alter Permissions">Applications</a></li>
+                </ul>
+            </div>
+        </nav>
+        <p style="padding:0 25px;"><?php $this->flashSession->output(); ?></p>
+        <?php echo $this->getContent(); ?>
+    </body>
+    <style> .panel-body input[type='email']{margin-bottom: 10px;}</style>
+</html>

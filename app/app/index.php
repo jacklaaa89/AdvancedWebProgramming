@@ -11,8 +11,11 @@ try {
     
     $loader = new Loader();
     
+    $loader->registerDirs(array(
+        '../app/controllers/'
+    ));
+    
     $loader->registerNamespaces(array(
-        'Controller' => '../app/controllers/',
         'Model' => '../app/models/',
         'Plugin' => '../app/plugins/',
         'Model/Auth' => '../app/models/auth/',
@@ -44,6 +47,30 @@ try {
         return $view;
     });
     
+    $di->setShared('session', function(){
+        $session = new \Phalcon\Session\Adapter\Files();
+        $session->start();
+        return $session;
+    });
+    
+    $di->set('flashSession', function() {
+        $flash = new \Phalcon\Flash\Session(array(
+            'error' => 'alert alert-danger',
+            'success' => 'alert alert-success',
+            'notice' => 'alert alert-info'
+        ));
+        return $flash;
+    });
+    
+    $di->set('flash', function() {
+        $flash = new \Phalcon\Flash\Direct(array(
+            'error' => 'alert alert-danger',
+            'success' => 'alert alert-success',
+            'notice' => 'alert alert-info'
+        ));
+        return $flash;
+    });
+    
     $di->set('router', function(){
         $router = new \Phalcon\Mvc\Router();
         $router->add('/dashboard/{userID:[A-Za-z0-9]+}', array(
@@ -53,6 +80,10 @@ try {
         $router->add('/dashboard/{userID:[A-Za-z0-9]+}/permissions', array(
             'controller' => 'dashboard',
             'action' => 'permissions'
+        ));
+        $router->add('/dashboard/background', array(
+            'controller' => 'dashboard',
+            'action' => 'background'
         ));
         return $router;
     });
@@ -92,6 +123,6 @@ try {
     echo $app->handle()->getContent();
     
 } catch (Exception $ex) {
-    echo 'PhalconException: ' . $ex->getMessage();
+    echo 'PhalconException: ' . $ex->getTraceAsString();
 }
 

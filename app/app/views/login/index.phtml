@@ -1,1 +1,17 @@
-<div>The requested page was not found.</div>
+<?php echo \Phalcon\Tag::form(array($action, 'method' => 'POST')) ?>
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <?php echo $title; ?>
+    </div>
+    <div class="panel-body">
+            <?php if(isset($name)) {
+                echo $name;
+            } ?>
+            <?php echo \Phalcon\Tag::emailField(array('email', 'placeholder' => 'Email', 'required' => 'required', 'class' => 'form-control')) ?>
+            <?php echo \Phalcon\Tag::passwordField(array('pass', 'placeholder' => 'Password', 'required' => 'required', 'class' => 'form-control')) ?>        
+    </div>
+    <div class="panel-footer">
+        <?php echo \Phalcon\Tag::submitButton(array('submit', 'class' => 'btn btn-primary', 'value' => $label)); ?>
+    </div>
+</div>
+<?php echo \Phalcon\Tag::endForm(); ?>

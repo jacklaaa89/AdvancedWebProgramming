@@ -1,7 +1,5 @@
 <?php
 
-namespace Controller;
-
 class LogoutController extends \Phalcon\Mvc\Controller {
     
     public function indexAction() {
@@ -12,7 +10,7 @@ class LogoutController extends \Phalcon\Mvc\Controller {
         //this route logs a authenticated user out.
         //just remove the session and redirect to login page.
         
-        return $this->response->redirect('login/index');
+        return $this->response->redirect('login');
         
     }
     

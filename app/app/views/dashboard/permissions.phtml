@@ -1,1 +1,72 @@
-<div>The requested page was not found.</div>
+<div style="padding:25px;">   
+<ul class="list-group" style="width:55%;">
+        <li class="list-group-item list-group-item-info">Applications</li>
+        <?php foreach($user->getApplications() as $app) { ?>
+            <li class="list-group-item" data-app='<?php echo $app->getClientID(); ?>'
+                             data-user='<?php echo $user->getUserID(); ?>'><?php echo $app->getClient()->getName(); ?>
+                <div class='btn-group pull-right'><button class="btn btn-danger">Delete App</button></div>
+                <?php foreach($app->getScope() as $scope) { ?>
+                <!-- Single button -->
+                <div class="btn-group pull-right">
+                  <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                    <?php echo $scope; ?> <span class="caret"></span>
+                  </button>
+                  <ul class="dropdown-menu" role="menu">
+                      <li><a href="#" class='revoke' data-key='<?php echo strtolower($scope); ?>'>Revoke</a></li>
+                  </ul>
+                </div>
+                <?php } ?>
+                
+            </li>
+        <?php } ?>
+</ul>
+</div>
+<style>
+    .pull-right{top:-7px;margin-left:5px;}
+</style>
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('.btn-danger').click(function(){
+           var p = $(this).parents('.list-group-item');
+           var r = $.ajax({
+               url : '/dashboard/background',
+               type : 'POST',
+               dataType : 'JSON',
+               data : {
+                   type : 'APPLICATION_REVOKED',
+                   appID : p.data('app'),
+                   userID : p.data('user')
+               }
+           });
+           r.done(function(response){
+               if(response !== undefined) {
+                   if(!response.error) {
+                       window.location = '/dashboard/'+p.data('user') + '/permissions';
+                   }
+               }
+           });
+        });
+        
+        $('.revoke').click(function(){
+           var p = $(this).parents('.list-group-item');
+           var r = $.ajax({
+               url : '/dashboard/background',
+               type : 'POST',
+               dataType : 'JSON',
+               data : {
+                   type : 'PERMISSION_REVOKED',
+                   appID : p.data('app'),
+                   userID : p.data('user'),
+                   permission : $(this).data('key')
+               }
+           });
+           r.done(function(response){
+               if(response !== undefined) {
+                   if(!response.error) {
+                       window.location = '/dashboard/'+p.data('user') + '/permissions';
+                   }
+               }
+           });
+        });
+    });
+</script>

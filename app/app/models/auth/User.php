@@ -88,7 +88,7 @@ class User extends BaseModel {
         return $this;
     }
     
-    public static function addNewUser($emailAddress, $passwordHash) {
+    public static function addNewUser($emailAddress, $passwordHash, $name) {
         //generate new auth user.
         if(is_bool(self::checkUserExists($emailAddress)) && filter_var($emailAddress, FILTER_VALIDATE_EMAIL)) {
             $user = new \Model\Auth\User();
@@ -99,11 +99,12 @@ class User extends BaseModel {
             //make a new data user.
             $datauser = new \Model\Data\User();
             $datauser->setEmail($emailAddress)
-                     ->setUserID($user->getUserID());
+                     ->setUserID($user->getUserID())
+                     ->setName($name);
             
             if(!$user->save() || !$datauser->save()) {
                 //try again as userID failed.
-                \Model\Auth\User::addNewUser($emailAddress, $passwordHash);
+                \Model\Auth\User::addNewUser($emailAddress, $passwordHash, $name);
             }
             return $user;
         }

@@ -9,9 +9,13 @@
         <script type="text/javascript" src="/js/jquery-1.11.0.min.js"></script>
         <script type="text/javascript" src="/js/bootstrap.min.js"></script>
     </head>
-    <body style="padding:25px;">
-        <p><?php $this->flashSession->output(); ?></p>
-        <?php echo $this->getContent(); ?>
+    <body>
+        <?php echo \Phalcon\Tag::form(array('', 'method' => 'POST')) ?>
+        <div class="panel panel-default">
+            <div class="panel-footer">
+                <?php echo \Phalcon\Tag::submitButton(array('submit', 'class' => 'btn btn-primary', 'value' => 'Login With Service')); ?>
+            </div>
+        </div>
+        <?php echo \Phalcon\Tag::endForm(); ?>
     </body>
-    <style>.panel, .alert {width:50%;} .panel-body input[type='email']{margin-bottom: 10px;}</style>
 </html>

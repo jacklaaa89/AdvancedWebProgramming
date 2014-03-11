@@ -1,1 +1,30 @@
-<div>The requested page was not found.</div>
+<div style="padding:25px;">    
+    <ul class="list-group">
+        <form method="POST" action="/dashboard/<?php echo $user->getUserID(); ?>">
+        <input type="hidden" name="type" value="EMAIL_UPDATE"/>
+        <li class="list-group-item list-group-item-info">Email Address</li>
+        <li class="list-group-item"><input type="email" name="email" value="<?php echo $user->getEmail(); ?>" class="form-control"/></li>
+        <li class="list-group-item list-group-item-info"><input type="submit" value="Confirm" class="btn btn-primary"/></li>
+        </form>
+    </ul>
+    <ul class="list-group">
+        <form method="POST" action="/dashboard/<?php echo $user->getUserID(); ?>">
+        <input type="hidden" name="type" value="PASSWORD_UPDATE"/>
+        <li class="list-group-item list-group-item-info">Password</li>
+        <li class="list-group-item">New Password: <input type="password" name="pass" class="form-control"/></li>
+        <li class="list-group-item">Confirm Password: <input type="password" name="confirmpass" class="form-control"/></li>
+        <li class="list-group-item">Old Password: <input type="password" name="oldpass" class="form-control"/></li>
+        <li class="list-group-item list-group-item-info"><input type="submit" value="Confirm" class="btn btn-primary"/></li>
+        </form>
+    </ul>
+    <ul class="list-group">
+        <li class="list-group-item list-group-item-info">Applications</li>
+        <?php foreach($user->getApplications() as $app) { ?>
+            <li class="list-group-item"><?php echo $app->getClient()->getName(); ?></li>
+        <?php } ?>
+            <li class="list-group-item list-group-item-info"><a href="/dashboard/<?php echo $user->getUserID(); ?>/permissions" title="Show more applications">Show More</a></li>
+    </ul>
+</div>
+<style>
+    .list-group {width:55%;} .list-group-item:first-of-type {border-top-left-radius: 5px; border-top-right-radius: 5px;}
+</style>

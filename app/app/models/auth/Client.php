@@ -1,6 +1,6 @@
 <?php
 
-namespace \Model\Auth;
+namespace Model\Auth;
 
 class Client extends \Phalcon\Mvc\Model {
     

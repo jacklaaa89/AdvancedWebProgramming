@@ -9,6 +9,8 @@ class User extends \Phalcon\Mvc\Model {
     
     private $emailAddress;
     
+    private $name;
+    
     public function getSource() {
         return 'user';
     }
@@ -25,6 +27,15 @@ class User extends \Phalcon\Mvc\Model {
         return $this->emailAddress;
     }
     
+    public function setName($name) {
+        $this->name = $name;
+        return $this;
+    }
+    
+    public function getName() {
+        return $this->name;
+    }
+    
     public function setUserID($userID) {
         $this->userID = $userID;
         return $this;
@@ -38,7 +49,8 @@ class User extends \Phalcon\Mvc\Model {
     public function toArray() {
         return array(
             'userID' => $this->getUserID(),
-            'emailAddress' => $this->getEmailAddress()
+            'emailAddress' => $this->getEmailAddress(),
+            'name' => $this->getName()
         );
     }
 }

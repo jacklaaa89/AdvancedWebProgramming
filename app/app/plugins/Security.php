@@ -12,7 +12,8 @@ use \Phalcon\Events\Event,
 
 class Security extends Plugin {
     
-    public function beforeDispatchRoute(Event $event, Dispatcher $dispatcher) {
+    public function beforeDispatch(Event $event, Dispatcher $dispatcher) {
+        
         $role = (!$this->session->has('auth')) ? 'Guests' : 'Users';
         
         $controller = $dispatcher->getControllerName();
@@ -23,7 +24,7 @@ class Security extends Plugin {
         $allowed = $acl->isAllowed($role, $controller, $action);
         
         if($allowed != Acl::ALLOW) {
-            $this->flash->error('Please login before trying to access this page.');
+            $this->flashSession->error('Please login before trying to access this page.');
             $dispatcher->forward(array(
                 'controller' => 'login',
                 'action' => 'index'
@@ -33,6 +34,13 @@ class Security extends Plugin {
         }
     }
     
+    /**
+     * defines the Access Control List for this application.
+     * the routes are hardcoded in, but these could be loaded from a model
+     * so what administrators could just add new entries in the Db table to also
+     * add new entries into the ACL.
+     * @return \Phalcon\Acl\Adapter\Memory the ACL to use with this application.
+     */
     public function getAcl() {
         $acl = new AclAdapter();
         
@@ -45,6 +53,7 @@ class Security extends Plugin {
             'guests' => new Role('Guests')
         );
         
+        //define roles.
         foreach($roles as $role) {
             $acl->addRole($role);
         }
@@ -65,6 +74,10 @@ class Security extends Plugin {
             $acl->addResource(new Resource($resource), $actions);
         }
         
+        foreach ($private as $resource => $actions) {
+            $acl->addResource(new Resource($resource), $actions);
+        }
+        
         foreach($roles as $role) {
             foreach($public as $resource => $actions) {
                 $acl->allow($role->getName(), $resource, '*');
@@ -77,6 +90,7 @@ class Security extends Plugin {
             }
         }
         
+        //return the acl list.
         return $acl;
     }
     
