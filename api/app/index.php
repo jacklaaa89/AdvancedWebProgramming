@@ -8,6 +8,7 @@ use \Phalcon\Db\Adapter\Pdo\Mysql,
 
 $loader = new Loader();
 
+//register namespaces.
 $loader->registerNamespaces(
     array(
         "Models" => "../app/models/",

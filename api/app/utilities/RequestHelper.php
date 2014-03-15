@@ -2,6 +2,12 @@
 
 namespace Utilities;
 
+/**
+ * This class has some helper functions that deal with the request
+ * like getting the token from the request (as this can be set in either
+ * the Authorization header or using the param access_token in the query string.)
+ * @author Jack Timblin - U1051575
+ */
 class RequestHelper {
     
     /**
@@ -26,12 +32,16 @@ class RequestHelper {
         return \Models\Auth\Token::findToken(trim($t[1]));
     }
     
+    /**
+     * sets the headers in the response.
+     * @param \Phalcon\Mvc\Micro $app the web application instance.
+     * @param array $headers an associative array of headers to set.
+     */
     public static function setHeaders($app, $headers) {
         //set headers in response.
         foreach($headers as $tag => $value) {
             $app->response->setHeader($tag, $value);
         }
-        
     }
 }
 

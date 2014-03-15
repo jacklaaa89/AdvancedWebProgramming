@@ -1,7 +1,15 @@
 <?php
 
+/**
+ * this controller handles requests to /dashboard.
+ * @author Jack Timblin - U1051575
+ */
 class DashboardController extends \Phalcon\Mvc\Controller {
     
+    /**
+     * this is the action for /dashboard/{userID}.
+     * @param string $userID the ID of the user in the dashboard.
+     */
     public function indexAction($userID) {
         if(!isset($userID)) {
             return $this->dispatcher->forward(array(
@@ -25,6 +33,7 @@ class DashboardController extends \Phalcon\Mvc\Controller {
             ));
         }
         
+        //deal with a form submission.
         if($this->request->isPost()) {
             //one of the forms was posted.
             switch($this->request->getPost('type', 'string')) {
@@ -74,6 +83,10 @@ class DashboardController extends \Phalcon\Mvc\Controller {
         $this->view->permission = '';
     }
     
+    /**
+     * this action deals with /dashboard/{userID}/permissions
+     * @param string $userID the currently logged in user.
+     */
     public function permissionsAction($userID) {
         //again check that the userID is set and th user exists.
         if(!isset($userID)) {
@@ -107,6 +120,9 @@ class DashboardController extends \Phalcon\Mvc\Controller {
         
     }
     
+    /**
+     * this action deals with ajax requests from /dashboard/background
+     */
     public function backgroundAction() {
         
         $this->view->disable();

@@ -1,7 +1,13 @@
 <?php
 
+/**
+ * this controller handles requests to /logout
+ */
 class LogoutController extends \Phalcon\Mvc\Controller {
     
+    /**
+     * this action handles /logout/index or just /logout.
+     */
     public function indexAction() {
         
         if($this->session->has('auth')) {

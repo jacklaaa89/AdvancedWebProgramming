@@ -1,7 +1,14 @@
 <?php
 
+/**
+ * this controller handles requests to /register.
+ * @author Jack Timblin - U1051575
+ */
 class RegisterController extends \Phalcon\Mvc\Controller {
     
+    /**
+     * this action handles requests from /register/index or just /register.
+     */
     public function indexAction() {
         
         if($this->request->isPost()) {

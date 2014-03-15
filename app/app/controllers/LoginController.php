@@ -1,7 +1,14 @@
 <?php
 
+/**
+ * this controller handles requests to /login/
+ * @author Jack Timblin - U1051575
+ */
 class LoginController extends \Phalcon\Mvc\Controller {
     
+    /**
+     * this action handles requests to /login/index or just /login
+     */
     public function indexAction() {
         
         //check to see if a user is already logged in.
@@ -33,6 +40,7 @@ class LoginController extends \Phalcon\Mvc\Controller {
             
         }
         
+        //set view variables.
         $this->view->action = 'login';
         $this->view->label = 'Login';
         $this->view->title = 'Please Login To Enter The Dashboard.';
