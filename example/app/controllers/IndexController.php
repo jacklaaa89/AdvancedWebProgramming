@@ -116,12 +116,22 @@ class IndexController extends \Phalcon\Mvc\Controller {
             return $this->response->redirect('index');
         }
         
+        //check to see if the token is still valid.
+        $url = 'http://api.local/user?access_token='.$token;
+        $headers = get_headers($url);
+        if(preg_match('/(forbidden)/i', $headers[0])) {
+            $this->flashSession->error('User has revoked access to user api.');
+            $this->session->remove('token');
+            $this->session->remove('scope');
+            return $this->response->redirect('index');
+        }
+        
         //token can be passed via Header or querystring.
         //instant array access is only available after php 5.4
         if(version_compare(PHP_VERSION, '5.4.0', '>=')) {
-            $this->view->data = json_decode(file_get_contents('http://api.local/user?access_token='.$token), true)[0];
+            $this->view->data = json_decode(file_get_contents($url), true)[0];
         } else {
-            $d = json_decode(file_get_contents('http://api.local/user?access_token='.$token), true);
+            $d = json_decode(file_get_contents($url), true);
             $this->view->data = $d[0];
         }
         

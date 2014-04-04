@@ -31,6 +31,15 @@ try {
         return $session;
     });
     
+    $di->set('flashSession', function() {
+        $flash = new \Phalcon\Flash\Session(array(
+            'error' => 'alert alert-danger',
+            'success' => 'alert alert-success',
+            'notice' => 'alert alert-info',
+        ));
+        return $flash;
+    });
+    
     $app = new App($di);
     
     echo $app->handle()->getContent();

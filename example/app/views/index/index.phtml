@@ -10,6 +10,7 @@
         <script type="text/javascript" src="/js/bootstrap.min.js"></script>
     </head>
     <body>
+        <?php echo $this->flashSession->output(); ?>
         <?php echo \Phalcon\Tag::form(array('', 'method' => 'POST')) ?>
         <div class="panel panel-default">
             <div class="panel-footer">
